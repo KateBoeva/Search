@@ -7,16 +7,12 @@ class SiteMap
     public $ignore_list;
     public $limit;
 
-    public function __construct($host, $ignore_list = null)
+    public function __construct($host)
     {
         $this->host = $host;
         $this->limit = 100;
         $this->host_paths = [];
-        if (!$ignore_list) {
-            $this->ignore_list = ["javascript:", ".css", ".js", ".ico", ".jpg", ".png", ".jpeg", ".swf", ".gif", '#', '@'];
-        } else {
-            $this->ignore_list = $ignore_list;
-        }
+        $this->ignore_list = ["javascript:", ".css", ".js", ".ico", ".jpg", ".png", ".jpeg", ".swf", ".gif", '#', '@'];
     }
 
     public function findPaths()
@@ -93,11 +89,17 @@ class SiteMap
         return preg_replace("/(\s){2,}/u", " ", $content);
     }
 
+    public function getLemmatizedFile($filepath)
+    {
+        return explode("\t", file_get_contents($filepath));
+    }
+
     private function getWords($filepath)
     {
         if (preg_match_all("/\b(\w+)\b/ui", file_get_contents($filepath), $matches)) {
             foreach ($matches[1] as $key => $word) {
-                $matches[1][$key] = strtoupper(iconv('utf-8', 'windows-1251//IGNORE', $word));
+                $tmp = mb_strtoupper($word);
+                $matches[1][$key] = iconv('utf-8', 'windows-1251//IGNORE', $tmp);
             }
 
             return $matches[1];
@@ -127,11 +129,14 @@ class SiteMap
         for ($i = 1; $i <= $this->limit; $i++) {
             $filename = $i .'.txt';
             $words = $this->getWords('data/pages/'.$filename);
+            $result = [];
             foreach ($words as $key => $word) {
-                $words[$key] = $morphy->lemmatize($word)[0];
+                if ($morphy->findWord($word)) {
+                    $result[] = mb_convert_case($morphy->lemmatize($word)[0], MB_CASE_LOWER, "windows-1251");
+                }
             }
 
-            $this->saveLemmatizedFile($words, 'data/lemmatized/'.$filename);
+            $this->saveLemmatizedFile($result, 'data/lemmatized/'.$filename);
         }
     }
 }

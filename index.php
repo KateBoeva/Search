@@ -2,6 +2,7 @@
 
 require_once 'phpmorphy-0.3.7/src/common.php';
 include 'SiteMap.php';
+include 'Matrix.php';
 
 $dir = 'phpmorphy-0.3.7/dicts';
 $lang = 'ru_RU';
@@ -18,3 +19,6 @@ $map = new SiteMap($url);
 $map->findPaths();
 $map->updateFiles();
 $map->lemmatizeFiles($morphy);
+
+$matrix = new Matrix($map);
+$matrix->buildMatrix();
