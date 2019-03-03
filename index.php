@@ -15,21 +15,30 @@ try {
 }
 
 $url = 'https://www.yale.edu';
-$map = new SiteMap($url);
-//print_r($map->findPages($url));
-//echo $map->makeFullLink('#fsf');
+$count = 100;
+$map = new SiteMap($url, $count);
+
 $map->refreshHostPaths();
 $map->updateFiles();
 $map->lemmatizeFiles($morphy);
+
 $matrix = new Matrix($map);
 $matrix->buildMatrix();
 
+echo tfidf(strtolower($morphy->lemmatize(strtoupper(readline()))[0]),$count, 'data/lemmatized/1.txt');
 
-//for ($i = 1; $i < 5689; $i++) {
-//    unlink('data/matrix/words/'.$i.'.txt');
-//}
+function tfidf($word, $count, $file)
+{
+    $file = explode("\t", file_get_contents($file));
+    $tf = (float)array_count_values($file)[$word] / count($file);
+    $idf = 0;
+    for ($i = 1; $i <= $count; $i++) {
+        $words = file_get_contents('data/lemmatized/'.$i.'.txt');
+        if (strpos($words, $word) !== false) {
+            $idf++;
+        }
+    }
+    $idf = 1.0 / $idf;
 
-//file_put_contents('test.txt', implode("\n", $map->lemmatizeFiles($morphy, 'data/pages/1.txt')));
-//$map->lemmatizeFiles($morphy, )
-
-//var_dump(mb_convert_encoding($morphy->lemmatize(mb_convert_encoding('КОШКИ', 'windows-1251'))[0]));
+    return $tf * $idf;
+}

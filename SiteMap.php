@@ -7,10 +7,10 @@ class SiteMap
     public $ignore_list;
     public $limit;
 
-    public function __construct($host)
+    public function __construct($host, $count)
     {
         $this->host = $host;
-        $this->limit = 100;
+        $this->limit = $count;
         $this->host_paths = explode("\n", file_get_contents('data/index.txt'));
         $this->ignore_list = ["javascript:", ".css", ".js", ".ico", ".jpg", ".png", ".jpeg", ".swf", ".gif", '#', '@'];
     }
@@ -120,7 +120,7 @@ class SiteMap
         return strip_tags($content);
     }
 
-    public function getLemmatizedFile($filepath)
+    public static function getLemmatizedFile($filepath)
     {
         return explode("\t", file_get_contents($filepath));
     }
