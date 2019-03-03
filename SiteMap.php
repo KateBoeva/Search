@@ -11,40 +11,58 @@ class SiteMap
     {
         $this->host = $host;
         $this->limit = 100;
-        $this->host_paths = [];
+        $this->host_paths = explode("\n", file_get_contents('data/index.txt'));
         $this->ignore_list = ["javascript:", ".css", ".js", ".ico", ".jpg", ".png", ".jpeg", ".swf", ".gif", '#', '@'];
     }
 
     public function findPaths()
     {
-        if (file_exists('data/index.txt') && $content = file_get_contents('data/index.txt')) {
-            $this->host_paths = explode("\n", $content);
-        } else {
-            $this->host_paths = $this->filter($this->findPages($this->host));
+        return $this->makeList($this->findPages($this->host));
+    }
+
+    public function refreshHostPaths()
+    {
+        $this->host_paths = $this->findPaths();
+        file_put_contents('data/index.txt', implode("\n", $this->host_paths));
+    }
+
+    public function findPages($page)
+    {
+        preg_match_all("/<a[^>]*href\s*=\s*'([^']*)'|" . '<a[^>]*href\s*=\s*"([^"]*)"' . "/is", file_get_contents($page), $match);
+
+        foreach ($match[2] as $key => $url) {
+            $match[2][$key] = $this->makeFullLink($url);
         }
-    }
-
-    private function getRespCode($url)
-    {
-        return substr(get_headers($url)[0], 9, 3);
-    }
-
-    private function findPages($page)
-    {
-        $content = file_get_contents($page);
-        preg_match_all("/<a[^>]*href\s*=\s*'([^']*)'|" . '<a[^>]*href\s*=\s*"([^"]*)"' . "/is", $content, $match);
 
         return $match[2];
     }
 
-    private function filter($list)
+    private function makeList($list)
+    {
+        $result = $this->filter($list);
+        if (count($result) == $this->limit) {
+            return $result;
+        }
+
+        $newList = $result;
+        for ($i = 0; $i < count($result); $i++) {
+            if (count($newList) >= $this->limit) {
+                break;
+            }
+            $newList = array_merge($newList, $this->filter($this->findPages($result[$i+1]), $newList));
+        }
+
+        return array_slice($newList, 0, 100);
+    }
+
+    private function filter($list, $result_list = [])
     {
         $urls = [];
         foreach ($list as $key => $url) {
             if (count($urls) >= $this->limit) {
                 break;
             }
-            if ($this->validate($url) && !in_array($url, $urls) && $this->getContent($url) != "") {
+            if ($this->validate($url) && !in_array($url, array_merge($urls, $result_list)) && $this->cleanContent($url) != "") {
                 $urls[] = $url;
             }
         }
@@ -52,12 +70,20 @@ class SiteMap
         return $urls;
     }
 
+    public function makeFullLink($url) {
+        if (preg_match('/^\\/{1}(\w+-?\w+)+/', $url)) {
+            return $this->host.$url;
+        }
+        return $url;
+    }
+
     private function validate($url)
     {
         $valid = true;
 
-        if (strpos($url, substr($this->host, 8)) === false || strpos($url, ' ') !== false
-            || $this->getRespCode($url) != 200
+        if (strpos($url, substr($this->host, 12)) === false
+            || strpos($url, ' ') !== false
+            || substr(get_headers($url)[0], 9, 3) != 200
         ) {
             return false;
         }
@@ -74,19 +100,24 @@ class SiteMap
 
     public function updateFiles()
     {
-        file_put_contents('data/index.txt', implode("\n", $this->host_paths));
-
         for ($i = 0; $i < $this->limit; $i++) {
-            file_put_contents('data/pages/' . ($i + 1) . '.txt', strip_tags($this->getContent($this->host_paths[$i])));
+            file_put_contents('data/pages/' . ($i + 1) . '.txt', $this->cleanContent($this->host_paths[$i]));
         }
     }
 
-    private function getContent($url)
+    private function cleanContent($url)
     {
         $content = preg_replace("'<script[^>]*?>.*?</script>'si", "", file_get_contents($url));
         $content = preg_replace("'<style[^>]*?>.*?</style>'si", "", $content);
+        $content = str_replace("><", "> <", $content);
         $content = str_replace("\n", " ", $content);
-        return preg_replace("/(\s){2,}/u", " ", $content);
+        $content = preg_replace("/(\s){2,}/u", " ", $content);
+
+        while (strpos($content, "  ") !== false) {
+            $content = str_replace("  ", "", $content);
+        }
+
+        return strip_tags($content);
     }
 
     public function getLemmatizedFile($filepath)
@@ -94,12 +125,11 @@ class SiteMap
         return explode("\t", file_get_contents($filepath));
     }
 
-    private function getWords($filepath)
+    public function getWords($filepath)
     {
         if (preg_match_all("/\b(\w+)\b/ui", file_get_contents($filepath), $matches)) {
             foreach ($matches[1] as $key => $word) {
-                $tmp = mb_strtoupper($word);
-                $matches[1][$key] = iconv('utf-8', 'windows-1251//IGNORE', $tmp);
+                $matches[1][$key] = mb_strtoupper($word);
             }
 
             return $matches[1];
@@ -127,16 +157,17 @@ class SiteMap
     public function lemmatizeFiles(phpMorphy $morphy)
     {
         for ($i = 1; $i <= $this->limit; $i++) {
-            $filename = $i .'.txt';
-            $words = $this->getWords('data/pages/'.$filename);
-            $result = [];
+            $filename = $i . '.txt';
+            $words = $this->getWords('data/pages/' . $filename);
             foreach ($words as $key => $word) {
                 if ($morphy->findWord($word)) {
-                    $result[] = mb_convert_case($morphy->lemmatize($word)[0], MB_CASE_LOWER, "windows-1251");
+                    $words[$key] = mb_convert_case($morphy->lemmatize($word)[0], MB_CASE_LOWER);
+                } else {
+                    unset($words[$key]);
                 }
             }
 
-            $this->saveLemmatizedFile($result, 'data/lemmatized/'.$filename);
+            $this->saveLemmatizedFile($words, 'data/lemmatized/' . $filename);
         }
     }
 }

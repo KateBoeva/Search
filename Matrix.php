@@ -7,10 +7,9 @@ class Matrix
     public function __construct(SiteMap $map)
     {
         $this->map = $map;
-        file_put_contents('data/matrix/wordslist.txt', implode("\n", $this->findUniqueWords()));
     }
 
-    private function findUniqueWords()
+    private function getUniqueWords()
     {
         $words = [];
 
@@ -22,7 +21,7 @@ class Matrix
         $stop_words = explode("\n", file_get_contents('data/stop_words.txt'));
         foreach ($words as $word) {
             $word = strtolower($word);
-            if (!in_array($word, array_merge($result, $stop_words)) && preg_match('/^[à-ÿÀ-ß0-9-]+$/', $word)) {
+            if (!in_array($word, array_merge($result, $stop_words)) && preg_match('/^[A-Za-z0-9-]+$/', $word)) {
                 $result[] = $word;
             }
         }
@@ -30,24 +29,19 @@ class Matrix
         return $result;
     }
 
-    public function getUniqueList()
-    {
-        return explode("\n", file_get_contents('data/matrix/wordslist.txt'));
-    }
-
     public function buildMatrix()
     {
-        $unique = $this->getUniqueList();
+        $unique = $this->getUniqueWords();
 
-        for ($i = 0; $i < count($unique); $i++) {
+        foreach ($unique as $word) {
             $result = [];
-            for ($j = 1; $j < $this->map->limit; $j++) {
-                $file = $this->map->getLemmatizedFile('data/lemmatized/'.$j.'.txt');
-                if (array_search($unique[$i], $file)) {
-                    $result[] = $j;
+            for ($i = 1; $i <= $this->map->limit; $i++) {
+                $file = $this->map->getLemmatizedFile('data/lemmatized/'.$i.'.txt');
+                if (in_array($word, $file)) {
+                    $result[] = $i;
                 }
             }
-            file_put_contents('data/matrix/words/'.($i+1).'.txt', implode("\t", $result));
+            file_put_contents('data/matrix/words/'.$word.'.txt', implode("\t", $result));
         }
     }
 }
