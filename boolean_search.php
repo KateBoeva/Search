@@ -1,18 +1,11 @@
 <?php
 
+include 'Matrix.php';
+
 $needed = readline();
 $words = explode(" ", $needed);
 
-$list = scandir('data/matrix/words');
-
-foreach ($list as $key => $word) {
-    $p = strpos($word, '.txt');
-    if ($p === false) {
-        unset($list[$key]);
-    } else {
-        $list[$key] = substr($list[$key], 0, $p);
-    }
-}
+$list = Matrix::getWordsFromMatrix();
 
 $result = [];
 foreach ($words as $word) {
