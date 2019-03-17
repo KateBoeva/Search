@@ -1,10 +1,19 @@
 <?php
 
 include 'Matrix.php';
+require_once 'phpmorphy-0.3.7/src/common.php';
 
-$needed = readline();
-$words = explode(" ", $needed);
+$dir = 'phpmorphy-0.3.7/dicts';
+$lang = 'en_EN';
+$opts = ['storage' => PHPMORPHY_STORAGE_FILE];
 
+try {
+    $morphy = new phpMorphy($dir, $lang, $opts);
+} catch (phpMorphy_Exception $e) {
+    die('Error occured while creating phpMorphy instance: ' . $e->getMessage());
+}
+
+$words = explode(" ", strtolower($morphy->lemmatize(strtoupper(readline()))[0]));
 $list = Matrix::getWordsFromMatrix();
 
 $result = [];

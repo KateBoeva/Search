@@ -24,6 +24,3 @@ $map->lemmatizeFiles($morphy);
 
 $matrix = new Matrix($map);
 $matrix->buildMatrix();
-
-$search = strtolower($morphy->lemmatize(strtoupper(readline()))[0]);
-$matrix->tfidf($search);
