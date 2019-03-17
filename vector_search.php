@@ -13,9 +13,9 @@ try {
     die('Error occured while creating phpMorphy instance: ' . $e->getMessage());
 }
 
-//$words = explode(" ", strtolower($morphy->lemmatize(strtoupper(readline()))[0]));
+$words = explode(" ", strtolower($morphy->lemmatize(strtoupper(readline()))[0]));
 $helper = new TfIdf_Helper();
 
-//$helper->calcTfIdf();
-$cosSim = $helper->cosSim(['leader', 'school']);
+$helper->calcTfIdf();
+$cosSim = $helper->cosSim($words);
 $helper->printFirst(20, $cosSim);
