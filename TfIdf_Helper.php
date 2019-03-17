@@ -131,6 +131,17 @@ class TfIdf_Helper
 
     public function printFirst($count, $list)
     {
-        print_r(array_keys(array_slice($list, 0, $count, true)));
+        $links = explode("\n", file_get_contents('data/index.txt'));
+        $result = array_slice($list, 0, $count, true);
+
+        foreach ($result as $doc => $value) {
+            $result[$doc] = $links[$doc-1];
+        }
+
+        $n = 1;
+        foreach ($result as $doc => $link) {
+            print_r($n . ". Document №".$doc." - " . $link . "\n");
+            $n++;
+        }
     }
 }

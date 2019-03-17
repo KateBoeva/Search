@@ -14,9 +14,7 @@ try {
     die('Error occured while creating phpMorphy instance: ' . $e->getMessage());
 }
 
-$url = 'https://www.yale.edu';
-$count = 100;
-$map = new SiteMap($url, $count);
+$map = new SiteMap();
 
 $map->refreshHostPaths();
 $map->updateFiles();

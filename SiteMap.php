@@ -7,7 +7,7 @@ class SiteMap
     public $ignore_list;
     public $limit;
 
-    public function __construct($host, $count)
+    public function __construct($host = 'https://www.yale.edu', $count = 100)
     {
         $this->host = $host;
         $this->limit = $count;

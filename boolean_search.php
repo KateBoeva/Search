@@ -28,7 +28,7 @@ foreach ($words as $word) {
 if (count($result) == 0) {
     exit();
 } elseif (count($result) == 1) {
-    print_r(implode(" ", $result[$words[0]]));
+    printResult($result[$words[0]]);
     exit();
 }
 
@@ -45,4 +45,20 @@ for ($i = 0; $i < count($result)-1; $i++) {
     }
 }
 
-print_r(implode("\t", $intersect));
+printResult($intersect);
+
+function printResult($result)
+{
+    $links = explode("\n", file_get_contents('data/index.txt'));
+    $print = [];
+
+    foreach ($result as $key => $doc) {
+        $print[$doc] = $links[$doc-1];
+    }
+
+    $n = 1;
+    foreach ($print as $doc => $link) {
+        print_r($n . ". Document №".$doc." - " . $link . "\n");
+        $n++;
+    }
+}
